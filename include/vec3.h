@@ -5,6 +5,8 @@ class Vec3 {
 public:
     double x, y, z;
 
+    Vec3() : x(0), y(0), z(0) {}
+
     Vec3(double a, double b, double c) : x(a), y(b), z(c) {}
 
     Vec3 operator+(const Vec3& v) const {
