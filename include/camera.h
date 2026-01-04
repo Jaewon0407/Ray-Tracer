@@ -13,6 +13,7 @@ public:
     double aspect_ratio = 16.0 / 9.0;
     int image_width = 400;
     int samples_per_pixel = 4;
+    int max_depth = 10; // maximum number of ray bounces into the scene
 
     void render(const Hittable& world) {
 
@@ -39,7 +40,7 @@ public:
                     auto ray_direction = pixel_sample - camera_center;
 
                     Ray r(camera_center, ray_direction);
-                    pixel_color = pixel_color + ray_color(r, world);
+                    pixel_color = pixel_color + ray_color(r, world, max_depth);
 
                     // std::cout << "pixel_color: (" << pixel_color.x << ", " << pixel_color.y << ", " << pixel_color.z << ")" << std::endl;
                 }
@@ -92,10 +93,17 @@ private:
         pixel00_loc = viewport_upper_left + pixel_delta_u/2 + pixel_delta_v/2;
     }
 
-    Vec3 ray_color(const Ray& r, const Hittable& world) const {
+    Vec3 ray_color(const Ray& r, const Hittable& world, int depth) const {
+        
+        if (depth <= 0) {
+            return Vec3(0,0,0);
+        }
+        
         hit_record rec;
-        if (world.hit(r, Interval(0, infinity), rec)) {
-            return 0.5 * Vec3(rec.normal.x + 1, rec.normal.y + 1, rec.normal.z + 1);    
+        if (world.hit(r, Interval(0.001, infinity), rec)) {
+            Vec3 direction = rec.normal + random_unit_vector();
+            // recursively cast rays
+            return 0.5 * ray_color(Ray(rec.p, direction), world, depth-1);    
         }
 
         // interpolate between white and light blue

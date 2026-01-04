@@ -1,6 +1,7 @@
 #pragma once
 #include "ray.h"
 #include "interval.h"
+#include <memory>
 
 struct hit_record {
     Vec3 p;

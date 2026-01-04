@@ -13,6 +13,7 @@ int main() {
     camera.aspect_ratio = 16.0/9.0;
     camera.image_width = 400;
     camera.samples_per_pixel = 100;
+    camera.max_depth = 50;
 
     Hittable_list world;
     world.add(std::make_shared<Sphere>(Vec3(0,0,-1), 0.5));

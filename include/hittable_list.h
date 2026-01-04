@@ -23,6 +23,7 @@ public:
         auto closest_so_far = ray_t.max;
         bool hit_anything = false;
 
+        // this is for one single ray
         for (const auto& object: objects) {
             if (object->hit(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
                 hit_anything = true;
