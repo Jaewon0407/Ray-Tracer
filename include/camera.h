@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "hittable.h"
+#include "material.h"
 #include "ray.h"
 
 class Camera {
@@ -46,10 +47,12 @@ public:
                 }
 
                 static const Interval intensity(0.000, 0.999);
-
-                auto r = pixel_color.x / samples_per_pixel;
-                auto g = pixel_color.y / samples_per_pixel;
-                auto b = pixel_color.z / samples_per_pixel;
+                
+                // image viewier is expecting an image in gamma space, but 
+                // the image is given in linear space
+                auto r = linear_to_gamma(pixel_color.x / samples_per_pixel);
+                auto g = linear_to_gamma(pixel_color.y / samples_per_pixel);
+                auto b = linear_to_gamma(pixel_color.z / samples_per_pixel);
 
                 int ir = static_cast<int>(256 * intensity.clamp(r));
                 int ig = static_cast<int>(256 * intensity.clamp(g));
@@ -101,9 +104,14 @@ private:
         
         hit_record rec;
         if (world.hit(r, Interval(0.001, infinity), rec)) {
-            Vec3 direction = rec.normal + random_unit_vector();
+            Ray scattered;
+            Vec3 attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered)) {
+                // attenuation represents how much light is absorbed
+                return attenuation * ray_color(scattered, world, depth-1);
+            }
             // recursively cast rays
-            return 0.5 * ray_color(Ray(rec.p, direction), world, depth-1);    
+            return Vec3(0,0,0); 
         }
 
         // interpolate between white and light blue

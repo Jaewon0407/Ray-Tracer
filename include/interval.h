@@ -1,5 +1,5 @@
-
 #pragma once
+
 #include "utilities.h"
 
 class Interval {

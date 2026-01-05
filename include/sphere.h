@@ -1,11 +1,11 @@
-
 #pragma once
+
 #include "hittable.h"
 #include "vec3.h"
 
 class Sphere : public Hittable {
 public:
-    Sphere(const Vec3& center_, double radius_) : center(center_), radius(radius_) {}
+    Sphere(const Vec3& center_, double radius_, std::shared_ptr<Material> mat_) : center(center_), radius(radius_), mat(mat_) {}
 
     bool hit(const Ray& r, Interval ray_t, hit_record& rec) const override {
         
@@ -30,6 +30,7 @@ public:
             }
 
             rec.t = root;
+            rec.mat = mat;
             rec.p = r.at(rec.t);
             Vec3 outside_normal = (rec.p - center).normalize();
             rec.set_face_normal(r, outside_normal);
@@ -41,4 +42,5 @@ public:
 private:
     Vec3 center;
     double radius;
+    std::shared_ptr<Material> mat;
 };

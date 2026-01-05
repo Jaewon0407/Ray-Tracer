@@ -1,10 +1,10 @@
 #pragma once
 
-#include "interval.h"
-#include "hittable.h"
-#include "hittable_list.h"
 #include <memory>
 #include <vector>
+
+#include "hittable.h"
+#include "interval.h"
 
 class Hittable_list : public Hittable {
 public:
