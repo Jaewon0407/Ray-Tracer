@@ -16,6 +16,11 @@ public:
     int samples_per_pixel = 4;
     int max_depth = 10; // maximum number of ray bounces into the scene
 
+    double vfov = 90; // vertical view angle
+    Vec3 lookFrom = Vec3(0,0,0);
+    Vec3 lookAt = Vec3(0,0,-1);
+    Vec3 vUp = Vec3 (0,1,0);
+
     void render(const Hittable& world) {
 
         initialize();
@@ -72,27 +77,32 @@ private:
     Vec3 pixel00_loc;
     Vec3 pixel_delta_u;
     Vec3 pixel_delta_v;
+    Vec3 u, v, w;
 
     void initialize() {
         image_height = int(image_width/aspect_ratio);
 
-        auto focal_length = 1.0;
-        auto viewport_height = 2.0;
+        auto focal_length = (lookFrom - lookAt).length();
+        auto theta = degrees_to_radians(vfov);
+        auto h = std::tan(theta/2);
+        auto viewport_height = 2 * h * focal_length;
         auto viewport_width = viewport_height * (double(image_width)/image_height);
-        camera_center = Vec3(0,0,0);
+        camera_center = lookFrom;
+
+        w = (lookFrom - lookAt).normalize(); // view direction
+        u = vUp.crossProduct(w).normalize(); // width
+        v = w.crossProduct(u); // height - automatically normalized
 
         // defines how the viewport is laid out in the 3D space
-        auto viewport_u = Vec3(viewport_width, 0, 0);
-        auto viewport_v = Vec3(0, -viewport_height, 0);
+        auto viewport_u = viewport_width * u;
+        auto viewport_v = viewport_height * v;
 
         pixel_delta_u = viewport_u / image_width;
         pixel_delta_v = viewport_v / image_height;
 
-        // std::cout << "pixel_delta_u: (" << pixel_delta_u.x << ", " << pixel_delta_u.y << ", " << pixel_delta_u.z << ")" << std::endl;
-
         // find the location of the upper left pixel
         auto viewport_center = camera_center;
-        auto viewport_upper_left = viewport_center - Vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = viewport_center - (focal_length * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + pixel_delta_u/2 + pixel_delta_v/2;
     }
 

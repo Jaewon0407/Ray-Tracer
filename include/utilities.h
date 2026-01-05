@@ -46,3 +46,17 @@ Vec3 random_unit_vector() {
 inline Vec3 reflect(const Vec3& v, const Vec3& normal) {
     return v - 2 * v.dot(normal) * normal;
 }
+
+inline Vec3 refract(const Vec3& v, const Vec3& normal, double etai_over_etat) {
+    // std::fmin returns min of 2 floating point numbers
+    auto cos_theta = std::fmin(-v.dot(normal), 1.0);
+    Vec3 r_perp = etai_over_etat * (v + cos_theta * normal);
+    Vec3 r_parallel = -std::sqrt(std::fabs(1.0 - r_perp.length_squared())) * normal;
+    return r_perp + r_parallel;
+}
+
+inline double reflectance(double cosine, double refraction_index) {
+    auto r0 = (1 - refraction_index) / (1 + refraction_index);
+    r0 = r0*r0;
+    return r0 + (1-r0) * std::pow((1-cosine), 5);
+}

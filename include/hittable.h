@@ -16,7 +16,8 @@ struct hit_record {
 
     void set_face_normal(const Ray& r, const Vec3& outside_normal) {
         // ray is pointing towards the opposite direction of normal
-        if (r.direction.dot(outside_normal) < 0.0) {
+        front_face = r.direction.dot(outside_normal) < 0.0;
+        if (front_face) {
             normal = outside_normal;
         } else {
             normal = -outside_normal;
