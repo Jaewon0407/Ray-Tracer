@@ -1,11 +1,15 @@
 #pragma once
 
 #include "hittable.h"
+#include "aabb.h"
 #include "vec3.h"
 
 class Sphere : public Hittable {
 public:
-    Sphere(const Vec3& center_, double radius_, std::shared_ptr<Material> mat_) : center(center_), radius(radius_), mat(mat_) {}
+    Sphere(const Vec3& center_, double radius_, std::shared_ptr<Material> mat_) : center(center_), radius(radius_), mat(mat_) {
+        bbox = aabb(Vec3(center.x - radius, center.y - radius, center.z - radius),
+                    Vec3(center.x + radius, center.y + radius, center.z + radius));
+    }
 
     bool hit(const Ray& r, Interval ray_t, hit_record& rec) const override {
         
@@ -39,8 +43,11 @@ public:
         }
     }
 
+    aabb bounding_box() const override { return bbox; }
+
 private:
     Vec3 center;
     double radius;
     std::shared_ptr<Material> mat;
+    aabb bbox;
 };

@@ -21,6 +21,9 @@ public:
     Vec3 lookAt = Vec3(0,0,-1);
     Vec3 vUp = Vec3 (0,1,0);
 
+    double defocus_angle = 0; // variation angle of rays through each pixel
+    double focus_dist = 10; // distance from camera lookFrom point to plane of perfect focus
+
     void render(const Hittable& world) {
 
         initialize();
@@ -30,6 +33,7 @@ public:
         out << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
         for (int j = 0; j < image_height; j++) {
+
             for (int i = 0; i < image_width; i++) {
                 
                 Vec3 pixel_color(0,0,0);
@@ -43,12 +47,12 @@ public:
 
                     auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
                     auto pixel_sample = pixel_center + offset_u + offset_v;
-                    auto ray_direction = pixel_sample - camera_center;
 
-                    Ray r(camera_center, ray_direction);
+                    auto ray_origin = (defocus_angle <= 0) ? camera_center : defocus_disk_sample();
+                    auto ray_direction = pixel_sample - ray_origin;
+
+                    Ray r(ray_origin, ray_direction);
                     pixel_color = pixel_color + ray_color(r, world, max_depth);
-
-                    // std::cout << "pixel_color: (" << pixel_color.x << ", " << pixel_color.y << ", " << pixel_color.z << ")" << std::endl;
                 }
 
                 static const Interval intensity(0.000, 0.999);
@@ -79,13 +83,15 @@ private:
     Vec3 pixel_delta_v;
     Vec3 u, v, w;
 
+    Vec3 defocus_disk_u;
+    Vec3 defocus_disk_v;
+
     void initialize() {
         image_height = int(image_width/aspect_ratio);
 
-        auto focal_length = (lookFrom - lookAt).length();
         auto theta = degrees_to_radians(vfov);
         auto h = std::tan(theta/2);
-        auto viewport_height = 2 * h * focal_length;
+        auto viewport_height = 2 * h * focus_dist;
         auto viewport_width = viewport_height * (double(image_width)/image_height);
         camera_center = lookFrom;
 
@@ -95,15 +101,22 @@ private:
 
         // defines how the viewport is laid out in the 3D space
         auto viewport_u = viewport_width * u;
-        auto viewport_v = viewport_height * v;
+        auto viewport_v = viewport_height * -v;
 
         pixel_delta_u = viewport_u / image_width;
         pixel_delta_v = viewport_v / image_height;
 
-        // find the location of the upper left pixel
-        auto viewport_center = camera_center;
-        auto viewport_upper_left = viewport_center - (focal_length * w) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = camera_center - (focus_dist * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + pixel_delta_u/2 + pixel_delta_v/2;
+
+        auto defocus_radius = focus_dist * std::tan(degrees_to_radians(defocus_angle / 2));
+        defocus_disk_u = u * defocus_radius;
+        defocus_disk_v = v * defocus_radius;
+    }
+
+    Vec3 defocus_disk_sample() const {
+        auto p = random_in_unit_disk();
+        return camera_center + (p.x * defocus_disk_u) + (p.y * defocus_disk_v);
     }
 
     Vec3 ray_color(const Ray& r, const Hittable& world, int depth) const {

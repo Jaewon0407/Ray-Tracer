@@ -3,7 +3,7 @@
 #include <limits>
 #include <random>
 
-#include "vec3.h"
+// #include "vec3.h"
 
 constexpr double infinity = std::numeric_limits<double>::infinity();
 constexpr double pi = 3.1415926535897932385;
@@ -13,18 +13,6 @@ inline double degrees_to_radians(double degrees) {
     return degrees * pi / 180.0;
 }
 
-inline double random_offset() {
-    static std::uniform_real_distribution<double> distribution(-0.5, 0.5);
-    static std::mt19937 generator;
-    return distribution(generator);
-}
-
-inline double random_double() {
-    static std::uniform_real_distribution<double> distribution(-1.0, 1.0);
-    static std::mt19937 generator;
-    return distribution(generator); 
-}
-
 inline double linear_to_gamma(double linear_component) {
     if (linear_component > 0) {
         return std::sqrt(linear_component);
@@ -32,31 +20,24 @@ inline double linear_to_gamma(double linear_component) {
     return 0;
 }
 
-// Pick random point in the unit sphere and generate a normalized vector
-Vec3 random_unit_vector() {
-    while (true) {
-        auto p = Vec3(random_double(), random_double(), random_double());
-        auto lensq = p.length_squared();
-        if (1e-160 < lensq && lensq <= 1) {
-            return p / sqrt(lensq);
-        }
-    }
+inline double random_offset() {
+    static std::uniform_real_distribution<double> distribution(-0.5, 0.5);
+    static std::mt19937 generator;
+    return distribution(generator);
 }
 
-inline Vec3 reflect(const Vec3& v, const Vec3& normal) {
-    return v - 2 * v.dot(normal) * normal;
+// inline double random_double() {
+//     static thread_local std::mt19937 generator(std::random_device{}());
+//     static thread_local std::uniform_real_distribution<double> distribution(0.0, 1.0);
+//     return distribution(generator);
+// }
+
+inline double random_double() {
+    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
 }
 
-inline Vec3 refract(const Vec3& v, const Vec3& normal, double etai_over_etat) {
-    // std::fmin returns min of 2 floating point numbers
-    auto cos_theta = std::fmin(-v.dot(normal), 1.0);
-    Vec3 r_perp = etai_over_etat * (v + cos_theta * normal);
-    Vec3 r_parallel = -std::sqrt(std::fabs(1.0 - r_perp.length_squared())) * normal;
-    return r_perp + r_parallel;
-}
-
-inline double reflectance(double cosine, double refraction_index) {
-    auto r0 = (1 - refraction_index) / (1 + refraction_index);
-    r0 = r0*r0;
-    return r0 + (1-r0) * std::pow((1-cosine), 5);
+inline double random_double(double min, double max) {
+    return min + (max - min) * random_double();
 }

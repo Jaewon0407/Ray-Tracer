@@ -15,6 +15,7 @@ public:
     void clear() { objects.clear(); }
     void add(std::shared_ptr<Hittable> object) {
         objects.push_back(object);
+        bbox = aabb(bbox, object->bounding_box());
     }
 
     bool hit(const Ray& r, Interval ray_t, hit_record& rec) const override {
@@ -22,7 +23,8 @@ public:
         hit_record temp_rec;
         auto closest_so_far = ray_t.max;
         bool hit_anything = false;
-
+        
+        // ray_t.max and ray_t.min reset to the original interval, in the subsequent ray cast
         // this is for one single ray
         for (const auto& object: objects) {
             if (object->hit(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
@@ -33,4 +35,6 @@ public:
         }
         return hit_anything;
     }
+private:
+    aabb bbox;
 };
