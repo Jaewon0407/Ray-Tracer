@@ -1,9 +1,12 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 #include "hittable.h"
@@ -29,34 +32,61 @@ public:
     bool fisheye = false;
     double fisheye_fov = 180;
 
+    int num_threads = 0;
+
     void render(const Hittable& world) {
 
         initialize();
 
-        std::ofstream out("../data/output.ppm");
+        std::vector<Vec3> framebuffer(image_width * image_height);
 
+        int thread_count = num_threads > 0 ? num_threads
+                                           : static_cast<int>(std::thread::hardware_concurrency());
+        thread_count = std::max(1, thread_count);
+
+        std::atomic<int> next_row{0};
+        std::atomic<int> rows_done{0};
+
+        auto worker = [&]() {
+            for (int j = next_row++; j < image_height; j = next_row++) {
+                for (int i = 0; i < image_width; i++) {
+                    framebuffer[j * image_width + i] = render_pixel(i, j, world);
+                }
+                int done = ++rows_done;
+                if (done % 20 == 0 || done == image_height) {
+                    std::clog << "\rRows remaining: " << (image_height - done) << ' ' << std::flush;
+                }
+            }
+        };
+
+        auto start = std::chrono::steady_clock::now();
+
+        std::vector<std::thread> threads;
+        for (int t = 0; t < thread_count; t++) {
+            threads.emplace_back(worker);
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        auto seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+        std::clog << "\rRendered with " << thread_count << " threads in " << seconds << " s\n";
+
+        std::ofstream out("../data/output.ppm");
         out << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-        for (int j = 0; j < image_height; j++) {
+        static const Interval intensity(0.000, 0.999);
 
-            for (int i = 0; i < image_width; i++) {
-                
-                Vec3 pixel_color = render_pixel(i, j, world);
+        for (const auto& pixel_color : framebuffer) {
+            auto r = linear_to_gamma(pixel_color.x / samples_per_pixel);
+            auto g = linear_to_gamma(pixel_color.y / samples_per_pixel);
+            auto b = linear_to_gamma(pixel_color.z / samples_per_pixel);
 
-                static const Interval intensity(0.000, 0.999);
-                
-                // image viewier is expecting an image in gamma space, but 
-                // the image is given in linear space
-                auto r = linear_to_gamma(pixel_color.x / samples_per_pixel);
-                auto g = linear_to_gamma(pixel_color.y / samples_per_pixel);
-                auto b = linear_to_gamma(pixel_color.z / samples_per_pixel);
+            int ir = static_cast<int>(256 * intensity.clamp(r));
+            int ig = static_cast<int>(256 * intensity.clamp(g));
+            int ib = static_cast<int>(256 * intensity.clamp(b));
 
-                int ir = static_cast<int>(256 * intensity.clamp(r));
-                int ig = static_cast<int>(256 * intensity.clamp(g));
-                int ib = static_cast<int>(256 * intensity.clamp(b));
-
-                out << ir << ' ' << ig << ' ' << ib << "\n";
-            }
+            out << ir << ' ' << ig << ' ' << ib << "\n";
         }
 
         out.close();

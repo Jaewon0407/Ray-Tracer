@@ -68,5 +68,7 @@ int main() {
     cam.fisheye     = false;
     cam.fisheye_fov = 180;
 
+    cam.num_threads = 0;
+
     cam.render(world);
 }
