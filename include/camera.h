@@ -41,32 +41,7 @@ public:
 
             for (int i = 0; i < image_width; i++) {
                 
-                Vec3 pixel_color(0,0,0);
-
-                // for MSAA, we want to cast multiple rays 
-                for (int sample = 0; sample < samples_per_pixel; sample++) {
-
-                    if (fisheye) {
-                        Vec3 dir;
-                        if (fisheye_direction(i + 0.5 + random_offset(), j + 0.5 + random_offset(), dir)) {
-                            pixel_color = pixel_color + ray_color(Ray(camera_center, dir), world, max_depth);
-                        }
-                        continue;
-                    }
-
-                    // set offset
-                    auto offset_u = random_offset() * pixel_delta_u;
-                    auto offset_v = random_offset() * pixel_delta_v;
-
-                    auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-                    auto pixel_sample = pixel_center + offset_u + offset_v;
-
-                    auto ray_origin = (defocus_angle <= 0) ? camera_center : defocus_disk_sample();
-                    auto ray_direction = pixel_sample - ray_origin;
-
-                    Ray r(ray_origin, ray_direction);
-                    pixel_color = pixel_color + ray_color(r, world, max_depth);
-                }
+                Vec3 pixel_color = render_pixel(i, j, world);
 
                 static const Interval intensity(0.000, 0.999);
                 
@@ -125,6 +100,34 @@ private:
         auto defocus_radius = focus_dist * std::tan(degrees_to_radians(defocus_angle / 2));
         defocus_disk_u = u * defocus_radius;
         defocus_disk_v = v * defocus_radius;
+    }
+
+    Vec3 render_pixel(int i, int j, const Hittable& world) const {
+        Vec3 pixel_color(0,0,0);
+
+        for (int sample = 0; sample < samples_per_pixel; sample++) {
+
+            if (fisheye) {
+                Vec3 dir;
+                if (fisheye_direction(i + 0.5 + random_offset(), j + 0.5 + random_offset(), dir)) {
+                    pixel_color = pixel_color + ray_color(Ray(camera_center, dir), world, max_depth);
+                }
+                continue;
+            }
+
+            auto offset_u = random_offset() * pixel_delta_u;
+            auto offset_v = random_offset() * pixel_delta_v;
+
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto pixel_sample = pixel_center + offset_u + offset_v;
+
+            auto ray_origin = (defocus_angle <= 0) ? camera_center : defocus_disk_sample();
+            auto ray_direction = pixel_sample - ray_origin;
+
+            Ray r(ray_origin, ray_direction);
+            pixel_color = pixel_color + ray_color(r, world, max_depth);
+        }
+        return pixel_color;
     }
 
     bool fisheye_direction(double px, double py, Vec3& dir) const {
