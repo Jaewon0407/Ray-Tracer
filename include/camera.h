@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -24,6 +26,9 @@ public:
     double defocus_angle = 0; // variation angle of rays through each pixel
     double focus_dist = 10; // distance from camera lookFrom point to plane of perfect focus
 
+    bool fisheye = false;
+    double fisheye_fov = 180;
+
     void render(const Hittable& world) {
 
         initialize();
@@ -40,6 +45,14 @@ public:
 
                 // for MSAA, we want to cast multiple rays 
                 for (int sample = 0; sample < samples_per_pixel; sample++) {
+
+                    if (fisheye) {
+                        Vec3 dir;
+                        if (fisheye_direction(i + 0.5 + random_offset(), j + 0.5 + random_offset(), dir)) {
+                            pixel_color = pixel_color + ray_color(Ray(camera_center, dir), world, max_depth);
+                        }
+                        continue;
+                    }
 
                     // set offset
                     auto offset_u = random_offset() * pixel_delta_u;
@@ -112,6 +125,26 @@ private:
         auto defocus_radius = focus_dist * std::tan(degrees_to_radians(defocus_angle / 2));
         defocus_disk_u = u * defocus_radius;
         defocus_disk_v = v * defocus_radius;
+    }
+
+    bool fisheye_direction(double px, double py, Vec3& dir) const {
+        double radius_px = std::min(image_width, image_height) / 2.0;
+
+        double x = (px - image_width / 2.0) / radius_px;
+        double y = (py - image_height / 2.0) / radius_px;
+
+        double r = std::sqrt(x * x + y * y);
+        if (r > 1.0) {
+            return false;
+        }
+
+        double theta = r * degrees_to_radians(fisheye_fov) / 2.0;
+        double phi = std::atan2(y, x);
+
+        dir = std::sin(theta) * std::cos(phi) * u
+            + std::sin(theta) * std::sin(phi) * -v
+            + std::cos(theta) * -w;
+        return true;
     }
 
     Vec3 defocus_disk_sample() const {

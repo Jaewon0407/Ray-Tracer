@@ -65,5 +65,8 @@ int main() {
     cam.defocus_angle = 0.6;
     cam.focus_dist    = 10.0;
 
+    cam.fisheye     = false;
+    cam.fisheye_fov = 180;
+
     cam.render(world);
 }
