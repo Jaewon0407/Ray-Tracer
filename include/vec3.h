@@ -94,7 +94,7 @@ inline Vec3 random_in_unit_disk() {
 // Pick random point in the unit sphere and generate a normalized vector
 inline Vec3 random_unit_vector() {
     while (true) {
-        auto p = Vec3(random_double(), random_double(), random_double());
+        auto p = Vec3(random_double(-1,1), random_double(-1,1), random_double(-1,1));
         auto lensq = p.length_squared();
         if (1e-160 < lensq && lensq <= 1) {
             return p / sqrt(lensq);
